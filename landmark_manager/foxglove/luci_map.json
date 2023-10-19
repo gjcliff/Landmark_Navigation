@@ -1,0 +1,138 @@
+{
+  "configById": {
+    "3D!18i6zy7": {
+      "layers": {
+        "845139cb-26bc-40b3-8161-8ab60af4baf5": {
+          "visible": true,
+          "frameLocked": true,
+          "label": "Grid",
+          "instanceId": "845139cb-26bc-40b3-8161-8ab60af4baf5",
+          "layerId": "foxglove.Grid",
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        }
+      },
+      "cameraState": {
+        "perspective": false,
+        "distance": 16.29012499998473,
+        "phi": 59.99999999999931,
+        "thetaOffset": 90.00000000000102,
+        "targetOffset": [
+          0.366116170968515,
+          -0.4991847226263932,
+          -1.4137346026249542e-16
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {
+        "transforms": {
+          "showLabel": false,
+          "axisScale": 3,
+          "lineWidth": 2
+        }
+      },
+      "transforms": {
+        "frame:base_link": {
+          "visible": true
+        },
+        "frame:odom": {
+          "visible": true
+        },
+        "frame:map": {
+          "visible": true
+        },
+        "frame:base_camera": {
+          "visible": false
+        },
+        "frame:base_radar": {
+          "visible": false
+        },
+        "frame:base_ultrasonic": {
+          "visible": false
+        },
+        "frame:front_left_wheel": {
+          "visible": true
+        },
+        "frame:front_right_wheel": {
+          "visible": true
+        },
+        "frame:left_main_wheel": {
+          "visible": true
+        },
+        "frame:rear_left_wheel": {
+          "visible": true
+        },
+        "frame:rear_right_wheel": {
+          "visible": true
+        },
+        "frame:right_main_wheel": {
+          "visible": true
+        }
+      },
+      "topics": {
+        "/waypoint_markers": {
+          "visible": true
+        },
+        "/map": {
+          "visible": true,
+          "colorMode": "map"
+        },
+        "/local_costmap/costmap": {
+          "visible": true,
+          "colorMode": "costmap"
+        },
+        "/global_costmap/costmap": {
+          "visible": true,
+          "colorMode": "costmap"
+        },
+        "/landmark_markers": {
+          "visible": true
+        }
+      },
+      "publish": {
+        "type": "pose",
+        "poseTopic": "/goal_pose",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "followTf": "map"
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "3D!18i6zy7"
+}
