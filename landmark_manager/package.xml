@@ -3,7 +3,7 @@
 <package format="3">
   <name>landmark_manager</name>
   <version>0.0.0</version>
-  <description>This package provides a service for saving navigable landmarks, which are displayed as markers. It also provides services for canceling navigation and navigating to landmarks.</description>
+  <description>This package provides services for saving navigable landmarks, which are displayed as markers, canceling navigation, and navigating to landmarks. It also displays semantic labels for inferred landmarks.</description>
   <maintainer email="rintarohshima2023@u.northwestern.edu">rshima</maintainer>
   <license>MIT</license>
 
@@ -17,6 +17,10 @@
   <depend>visualization_msgs</depend>
   <depend>std_srvs</depend>
   <depend>nav2_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
 
   <build_depend>rosidl_default_generators</build_depend>
 

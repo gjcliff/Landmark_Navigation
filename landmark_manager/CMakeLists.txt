@@ -15,6 +15,10 @@ find_package(nav2_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}_srv
   "srv/SaveLandmark.srv"
@@ -23,6 +27,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}_srv
   rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_srv "rosidl_typesupport_cpp")
 
 add_executable(landmark_manager src/landmark_manager.cpp)
+add_executable(semantic_labeling src/semantic_labeling.cpp)
 
 ament_target_dependencies(landmark_manager
   rclcpp
@@ -33,10 +38,19 @@ ament_target_dependencies(landmark_manager
   yaml-cpp
   ament_index_cpp)
 
+ament_target_dependencies(semantic_labeling
+  rclcpp
+  geometry_msgs
+  visualization_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs)
+
 target_link_libraries(landmark_manager yaml-cpp "${cpp_typesupport_target}")
 
 install(TARGETS
   landmark_manager
+  semantic_labeling
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
