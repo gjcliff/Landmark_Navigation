@@ -2,7 +2,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
@@ -12,27 +11,9 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "builtin_interfaces/msg/time.hpp"
 
 using namespace std::chrono_literals;
-
-struct PointHash {
-  size_t operator()(const geometry_msgs::msg::Point& point) const {
-    const double threshold = 0.5;
-    auto hash_x = std::hash<double>()(std::floor(point.x / threshold) * threshold);
-    auto hash_y = std::hash<double>()(std::floor(point.y / threshold) * threshold);
-    auto hash_z = std::hash<double>()(std::floor(point.z / threshold) * threshold);
-    return hash_x ^ (hash_y << 1) ^ (hash_z << 2); // Use bitwise shifts to combine hashes
-  }
-};
-
-struct PointEqual {
-  bool operator()(const geometry_msgs::msg::Point& p1, const geometry_msgs::msg::Point& p2) const {
-    const double threshold = 0.5; // Threshold for considering points as equal
-    return std::abs(p1.x - p2.x) < threshold &&
-           std::abs(p1.y - p2.y) < threshold &&
-           std::abs(p1.z - p2.z) < threshold;
-  }
-};
 
 class SemanticLabeling : public rclcpp::Node
 {
@@ -63,7 +44,7 @@ public:
     new_door_point_received_ = false;
     new_table_point_received_ = false;
 
-    // Initialize unique maps for doors and tables to prevent duplication
+    // Initialize vectors for unique doors and tables to prevent duplication
     unique_door_points_.clear();
     unique_table_points_.clear();
   }
@@ -92,62 +73,60 @@ private:
     }
   }
 
-  // void door_callback(const geometry_msgs::msg::PointStamped & msg) {
-  //   auto transformed_point = transform_point(msg, "map");
-  //   if (unique_door_points.find(transformed_point.point) == unique_door_points.end()) {
-  //     unique_door_points.insert(transformed_point.point);
-  //     create_door_marker(transformed_point.point);
-  //     new_door_point_received_ = true;
-  //   }
-  // }
-
-  // void table_callback(const geometry_msgs::msg::PointStamped & msg) {
-  //   auto transformed_point = transform_point(msg, "map");
-  //   if (unique_table_points.find(transformed_point.point) == unique_table_points.end()) {
-  //     unique_table_points.insert(transformed_point.point);
-  //     create_table_marker(transformed_point.point);
-  //     new_table_point_received_ = true;
-  //   }
-  // }
-
   void door_callback(const geometry_msgs::msg::PointStamped & msg) {
+    // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+    //             "Door location in the camera frame is [%f, %f, %f]",
+    //             msg.point.x, msg.point.y, msg.point.z);
+    
     auto transformed_point = transform_point(msg, "map");
-    auto it = unique_door_points_.find(transformed_point.point);
+
+    RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                "Door location in the map frame is [%f, %f, %f]",
+                transformed_point.point.x, transformed_point.point.y, transformed_point.point.z);
+    
+    auto it = std::find_if(unique_door_points_.begin(), unique_door_points_.end(),
+      [this, &transformed_point](const auto& pair) {
+        return this->equal_points(pair.first, transformed_point.point);
+      });
+    
     if (it == unique_door_points_.end()) {
-      // Insert the point with a new marker ID if it's not found in the set
       int new_id = door_marker_id_++;
-      unique_door_points_[transformed_point.point] = new_id;
-      create_door_marker(transformed_point.point, new_id);
+      unique_door_points_.emplace_back(transformed_point.point, new_id);
+      create_door_marker(transformed_point.point, new_id, transformed_point.header.stamp);
       new_door_point_received_ = true;
     } else {
-      // If the point is already present, use its existing marker ID
-      create_door_marker(transformed_point.point, it->second);
+      create_door_marker(it->first, it->second, transformed_point.header.stamp);
       new_door_point_received_ = true;
     }
   }
 
   void table_callback(const geometry_msgs::msg::PointStamped & msg) {
     auto transformed_point = transform_point(msg, "map");
-    auto it = unique_table_points_.find(transformed_point.point);
+
+    auto it = std::find_if(unique_table_points_.begin(), unique_table_points_.end(),
+      [this, &transformed_point](const auto& pair) {
+        return this->equal_points(pair.first, transformed_point.point);
+      });
+    
     if (it == unique_table_points_.end()) {
-      // Insert the point with a new marker ID if it's not found in the set
       int new_id = table_marker_id_++;
-      unique_table_points_[transformed_point.point] = new_id;
-      create_table_marker(transformed_point.point, new_id);
+      unique_table_points_.emplace_back(transformed_point.point, new_id);
+      create_table_marker(transformed_point.point, new_id, transformed_point.header.stamp);
       new_table_point_received_ = true;
     } else {
-      // If the point is already present, use its existing marker ID
-      create_table_marker(transformed_point.point, it->second);
+      create_table_marker(it->first, it->second, transformed_point.header.stamp);
       new_table_point_received_ = true;
     }
   }
 
-  void create_door_marker(const geometry_msgs::msg::Point & point, int marker_id) {
+  void create_door_marker(const geometry_msgs::msg::Point & point, int marker_id,
+  builtin_interfaces::msg::Time stamp) 
+  {
     // door_marker_array_.markers.clear();
 
     visualization_msgs::msg::Marker door_marker;
     door_marker.header.frame_id = "map";
-    door_marker.header.stamp = get_clock()->now();
+    door_marker.header.stamp = stamp;
     door_marker.id = marker_id;
     door_marker.type = visualization_msgs::msg::Marker::SPHERE;
     door_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -172,12 +151,14 @@ private:
     }
   }
 
-  void create_table_marker(const geometry_msgs::msg::Point & point, int marker_id) {
+  void create_table_marker(const geometry_msgs::msg::Point & point, int marker_id,
+  builtin_interfaces::msg::Time stamp)
+  {
     // table_marker_array_.markers.clear();
 
     visualization_msgs::msg::Marker table_marker;
     table_marker.header.frame_id = "map";
-    table_marker.header.stamp = get_clock()->now();
+    table_marker.header.stamp = stamp;
     table_marker.id = marker_id;
     table_marker.type = visualization_msgs::msg::Marker::SPHERE;
     table_marker.action = visualization_msgs::msg::Marker::ADD;
@@ -214,9 +195,36 @@ private:
       {
         RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"), "Waiting for transform...");
       }
+
+      // auto message_time = rclcpp::Time(point_stamped_in.header.stamp);
+      // auto current_time = get_clock()->now();
+
+      // rclcpp::Duration duration = current_time - message_time;
+      // int64_t diff = duration.nanoseconds();
+
+      // RCLCPP_INFO(
+      //   rclcpp::get_logger("SemanticLabeling"),
+      //   "Message timestamp: %u.%09u",
+      //   point_stamped_in.header.stamp.sec,
+      //   point_stamped_in.header.stamp.nanosec
+      // );
+
+      // auto full_nanos = current_time.nanoseconds();
+      // uint32_t secs = static_cast<uint32_t>(full_nanos / 1000000000); // Get the whole seconds part
+      // uint32_t nanos = static_cast<uint32_t>(full_nanos % 1000000000); // Get the remaining nanoseconds part
+
+      // RCLCPP_INFO(
+      //   rclcpp::get_logger("SemanticLabeling"),
+      //   "Current timestamp: %u.%09u", secs, nanos
+      // );
+
+      // RCLCPP_INFO(
+      //   rclcpp::get_logger("SemanticLabeling"),
+      //   "Difference in timestamps (ns): %ld",
+      //   diff
+      // );
       
-      point_stamped_out = tf_buffer_->transform(point_stamped_in, target_frame,
-                                                tf2::durationFromSec(0.1));
+      point_stamped_out = tf_buffer_->transform(point_stamped_in, target_frame);
 
       // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
       //             "Transformed [%f, %f, %f] from frame '%s' to frame '%s'.",
@@ -245,6 +253,13 @@ private:
     }
   }
 
+  bool equal_points(const geometry_msgs::msg::Point& p1, const geometry_msgs::msg::Point& p2) {
+    const double threshold = 1.0; // Threshold for considering points as equal
+    return std::abs(p1.x - p2.x) < threshold &&
+           std::abs(p1.y - p2.y) < threshold &&
+           std::abs(p1.z - p2.z) < threshold;
+  }
+
   // Declare private variables
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr door_marker_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr table_marker_pub_;
@@ -262,13 +277,8 @@ private:
   bool new_door_point_received_;
   bool new_table_point_received_;
 
-  // // Unique sets to track unique points
-  // std::unordered_set<geometry_msgs::msg::Point, PointHash, PointEqual> unique_door_points_;
-  // std::unordered_set<geometry_msgs::msg::Point, PointHash, PointEqual> unique_table_points_;
-
-  // Maps to track unique points to marker IDs
-  std::unordered_map<geometry_msgs::msg::Point, int, PointHash, PointEqual> unique_door_points_;
-  std::unordered_map<geometry_msgs::msg::Point, int, PointHash, PointEqual> unique_table_points_;
+  std::vector<std::pair<geometry_msgs::msg::Point, int>> unique_door_points_;
+  std::vector<std::pair<geometry_msgs::msg::Point, int>> unique_table_points_;
 };
 
 /// \brief The main function

@@ -19,6 +19,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}_srv
   "srv/SaveLandmark.srv"
@@ -44,7 +45,8 @@ ament_target_dependencies(semantic_labeling
   visualization_msgs
   tf2
   tf2_ros
-  tf2_geometry_msgs)
+  tf2_geometry_msgs
+  builtin_interfaces)
 
 target_link_libraries(landmark_manager yaml-cpp "${cpp_typesupport_target}")
 
