@@ -2,6 +2,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <optional>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
@@ -78,44 +79,58 @@ private:
     //             "Door location in the camera frame is [%f, %f, %f]",
     //             msg.point.x, msg.point.y, msg.point.z);
     
-    auto transformed_point = transform_point(msg, "map");
+    auto transformed_optional = transform_point(msg, "map");
 
-    RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
-                "Door location in the map frame is [%f, %f, %f]",
-                transformed_point.point.x, transformed_point.point.y, transformed_point.point.z);
-    
-    auto it = std::find_if(unique_door_points_.begin(), unique_door_points_.end(),
-      [this, &transformed_point](const auto& pair) {
-        return this->equal_points(pair.first, transformed_point.point);
-      });
-    
-    if (it == unique_door_points_.end()) {
-      int new_id = door_marker_id_++;
-      unique_door_points_.emplace_back(transformed_point.point, new_id);
-      create_door_marker(transformed_point.point, new_id, transformed_point.header.stamp);
-      new_door_point_received_ = true;
+    if (transformed_optional) {
+      auto transformed_point = *transformed_optional;
+
+      // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+      //             "Door location in the map frame is [%f, %f, %f]",
+      //             transformed_point.point.x, transformed_point.point.y, transformed_point.point.z);
+      
+      auto it = std::find_if(unique_door_points_.begin(), unique_door_points_.end(),
+        [this, &transformed_point](const auto& pair) {
+          return this->equal_points(pair.first, transformed_point.point);
+        });
+      
+      if (it == unique_door_points_.end()) {
+        int new_id = door_marker_id_++;
+        unique_door_points_.emplace_back(transformed_point.point, new_id);
+        create_door_marker(transformed_point.point, new_id, transformed_point.header.stamp);
+        new_door_point_received_ = true;
+      } else {
+        create_door_marker(it->first, it->second, transformed_point.header.stamp);
+        new_door_point_received_ = true;
+      }
     } else {
-      create_door_marker(it->first, it->second, transformed_point.header.stamp);
-      new_door_point_received_ = true;
+      RCLCPP_ERROR(rclcpp::get_logger("SemanticLabeling"),
+        "Transformation failed. Point not processed.");
     }
   }
 
   void table_callback(const geometry_msgs::msg::PointStamped & msg) {
-    auto transformed_point = transform_point(msg, "map");
+    auto transformed_optional = transform_point(msg, "map");
 
-    auto it = std::find_if(unique_table_points_.begin(), unique_table_points_.end(),
-      [this, &transformed_point](const auto& pair) {
-        return this->equal_points(pair.first, transformed_point.point);
-      });
-    
-    if (it == unique_table_points_.end()) {
-      int new_id = table_marker_id_++;
-      unique_table_points_.emplace_back(transformed_point.point, new_id);
-      create_table_marker(transformed_point.point, new_id, transformed_point.header.stamp);
-      new_table_point_received_ = true;
+    if (transformed_optional) {
+      auto transformed_point = *transformed_optional;
+
+      auto it = std::find_if(unique_table_points_.begin(), unique_table_points_.end(),
+        [this, &transformed_point](const auto& pair) {
+          return this->equal_points(pair.first, transformed_point.point);
+        });
+      
+      if (it == unique_table_points_.end()) {
+        int new_id = table_marker_id_++;
+        unique_table_points_.emplace_back(transformed_point.point, new_id);
+        create_table_marker(transformed_point.point, new_id, transformed_point.header.stamp);
+        new_table_point_received_ = true;
+      } else {
+        create_table_marker(it->first, it->second, transformed_point.header.stamp);
+        new_table_point_received_ = true;
+      }
     } else {
-      create_table_marker(it->first, it->second, transformed_point.header.stamp);
-      new_table_point_received_ = true;
+      RCLCPP_ERROR(rclcpp::get_logger("SemanticLabeling"),
+        "Transformation failed. Point not processed.");
     }
   }
 
@@ -183,11 +198,9 @@ private:
     }
   }
 
-  geometry_msgs::msg::PointStamped transform_point(
+  std::optional<geometry_msgs::msg::PointStamped> transform_point(
   const geometry_msgs::msg::PointStamped &point_stamped_in, const std::string &target_frame)
   {
-    geometry_msgs::msg::PointStamped point_stamped_out;
-
     try
     {
       if (!tf_buffer_->canTransform(target_frame, point_stamped_in.header.frame_id,
@@ -224,7 +237,8 @@ private:
       //   diff
       // );
       
-      point_stamped_out = tf_buffer_->transform(point_stamped_in, target_frame);
+      geometry_msgs::msg::PointStamped point_stamped_out =
+        tf_buffer_->transform(point_stamped_in, target_frame, tf2::durationFromSec(0.1));
 
       // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
       //             "Transformed [%f, %f, %f] from frame '%s' to frame '%s'.",
@@ -235,13 +249,15 @@ private:
       //             "Map coordinates [%f, %f, %f] after transformation from frame '%s' to frame '%s'.",
       //             point_stamped_out.point.x, point_stamped_out.point.y, point_stamped_out.point.z,
       //             point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
+
+      return point_stamped_out;
     }
     catch (const tf2::TransformException & ex)
     {
       RCLCPP_WARN(rclcpp::get_logger("SemanticLabeling"),
                   "Transformation exception: %s", ex.what());
+      return {};
     }
-    return point_stamped_out;
   }
 
   void print_unique_door_points() {
