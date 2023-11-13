@@ -23,7 +23,7 @@ public:
   : Node("semantic_labeling")
   {
     // Initializes variables for publishers, subscribers, timer, tf buffer, and tf listener
-    rate_ = 20;
+    rate_ = 30;
     door_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/doors", 10);
     table_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/tables", 10);
     door_sub_ = create_subscription<geometry_msgs::msg::PointStamped>(
@@ -53,7 +53,7 @@ public:
 private:
   void timer_callback()
   {
-    print_unique_door_points();
+    // print_unique_door_points();
 
     // Check if a new door point has been received
     if (new_door_point_received_)
@@ -236,19 +236,19 @@ private:
       //   "Difference in timestamps (ns): %ld",
       //   diff
       // );
-      
+
       geometry_msgs::msg::PointStamped point_stamped_out =
         tf_buffer_->transform(point_stamped_in, target_frame, tf2::durationFromSec(0.1));
 
-      // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
-      //             "Transformed [%f, %f, %f] from frame '%s' to frame '%s'.",
-      //             point_stamped_in.point.x, point_stamped_in.point.y, point_stamped_in.point.z,
-      //             point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
-      
-      // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
-      //             "Map coordinates [%f, %f, %f] after transformation from frame '%s' to frame '%s'.",
-      //             point_stamped_out.point.x, point_stamped_out.point.y, point_stamped_out.point.z,
-      //             point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
+      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                  "Transformed [%f, %f, %f] from frame '%s' to frame '%s'.",
+                  point_stamped_in.point.x, point_stamped_in.point.y, point_stamped_in.point.z,
+                  point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
+
+      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                  "Map coordinates [%f, %f, %f] after transformation from frame '%s' to frame '%s'.",
+                  point_stamped_out.point.x, point_stamped_out.point.y, point_stamped_out.point.z,
+                  point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
 
       return point_stamped_out;
     }
