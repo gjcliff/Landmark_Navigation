@@ -1,3 +1,5 @@
+import os
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
@@ -13,6 +15,8 @@ def generate_launch_description():
         Node(
             package='landmark_manager',
             executable='semantic_labeling',
-            name='semantic_labeling'
+            name='semantic_labeling',
+            parameters=[os.path.join(get_package_share_directory('landmark_manager'),
+                                     'semantic_labeling_params.yaml')]
         )
     ])
