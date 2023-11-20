@@ -7,7 +7,7 @@ def generate_launch_description():
         Node(
             package = "tf2_ros", 
             executable = "static_transform_publisher",
-            arguments = ["--x", "0.35", "--y", "-0.27", "--z", "0", "--yaw", "0.2618", "--pitch", "0.3142", "--roll", "0", "--frame-id", "base_camera", "--child-frame-id", "camera_link"]
+            arguments = ["--x", "0.35", "--y", "-0.23", "--z", "0.1", "--yaw", "-0.2618", "--pitch", "0.3142", "--roll", "0", "--frame-id", "base_camera", "--child-frame-id", "camera_link"]
         ),
 
         Node(

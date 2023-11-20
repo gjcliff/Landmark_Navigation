@@ -23,7 +23,7 @@ public:
   : Node("semantic_labeling")
   {
     // Initializes variables for publishers, subscribers, timer, tf buffer, and tf listener
-    rate_ = 30;
+    rate_ = 200;
     door_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/doors", 10);
     table_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/tables", 10);
     door_sub_ = create_subscription<geometry_msgs::msg::PointStamped>(
@@ -75,9 +75,14 @@ private:
   }
 
   void door_callback(const geometry_msgs::msg::PointStamped & msg) {
-    // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
-    //             "Door location in the camera frame is [%f, %f, %f]",
-    //             msg.point.x, msg.point.y, msg.point.z);
+    RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                "Door location in the camera frame is [%f, %f, %f]",
+                msg.point.x, msg.point.y, msg.point.z);
+    
+    RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                "Message timestamp: %d.%09u",
+                msg.header.stamp.sec,
+                msg.header.stamp.nanosec);
     
     auto transformed_optional = transform_point(msg, "map");
 
@@ -203,11 +208,35 @@ private:
   {
     try
     {
-      if (!tf_buffer_->canTransform(target_frame, point_stamped_in.header.frame_id,
-                                    point_stamped_in.header.stamp, tf2::durationFromSec(1.0)))
-      {
-        RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"), "Waiting for transform...");
-      }
+      // if (!tf_buffer_->canTransform(target_frame, point_stamped_in.header.frame_id,
+      //                               point_stamped_in.header.stamp, tf2::durationFromSec(1.0)))
+      // {
+      //   RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"), "Waiting for transform...");
+      // }
+
+      auto point_in_base_camera = tf_buffer_->transform(point_stamped_in, "base_camera", tf2::durationFromSec(0.1));
+      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                  "Point in base_camera frame: [%f, %f, %f]",
+                  point_in_base_camera.point.x, point_in_base_camera.point.y, point_in_base_camera.point.z);
+
+      auto transform_camera_to_base = tf_buffer_->lookupTransform("base_camera",
+                                                                  point_stamped_in.header.frame_id,
+                                                                  tf2::TimePointZero);
+      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                  "Transform timestamp (camera_link to base_camera): %d.%09u",
+                  transform_camera_to_base.header.stamp.sec,
+                  transform_camera_to_base.header.stamp.nanosec);
+
+      auto point_stamped_out = tf_buffer_->transform(point_in_base_camera, target_frame, tf2::durationFromSec(0.1));
+      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                  "Point in map frame: [%f, %f, %f]",
+                  point_stamped_out.point.x, point_stamped_out.point.y, point_stamped_out.point.z);
+
+      auto transform_base_to_map = tf_buffer_->lookupTransform(target_frame, "base_camera", tf2::TimePointZero);
+      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+                  "Transform timestamp (base_camera to map): %d.%09u",
+                  transform_base_to_map.header.stamp.sec,
+                  transform_base_to_map.header.stamp.nanosec);
 
       // auto message_time = rclcpp::Time(point_stamped_in.header.stamp);
       // auto current_time = get_clock()->now();
@@ -237,18 +266,27 @@ private:
       //   diff
       // );
 
-      geometry_msgs::msg::PointStamped point_stamped_out =
-        tf_buffer_->transform(point_stamped_in, target_frame, tf2::durationFromSec(0.1));
+      // geometry_msgs::msg::PointStamped point_stamped_out =
+      //   tf_buffer_->transform(point_stamped_in, target_frame, tf2::durationFromSec(0.1));
 
-      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
-                  "Transformed [%f, %f, %f] from frame '%s' to frame '%s'.",
-                  point_stamped_in.point.x, point_stamped_in.point.y, point_stamped_in.point.z,
-                  point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
+      // geometry_msgs::msg::PointStamped point_stamped_out;
+      
+      // geometry_msgs::msg::TransformStamped transform =
+      //   tf_buffer_->lookupTransform(target_frame,
+      //                              point_stamped_in.header.frame_id,
+      //                              tf2::TimePointZero);
 
-      RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
-                  "Map coordinates [%f, %f, %f] after transformation from frame '%s' to frame '%s'.",
-                  point_stamped_out.point.x, point_stamped_out.point.y, point_stamped_out.point.z,
-                  point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
+      // tf2::doTransform(point_stamped_in, point_stamped_out, transform);
+
+      // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+      //             "Transformed [%f, %f, %f] from frame '%s' to frame '%s'.",
+      //             point_stamped_in.point.x, point_stamped_in.point.y, point_stamped_in.point.z,
+      //             point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
+
+      // RCLCPP_INFO(rclcpp::get_logger("SemanticLabeling"),
+      //             "Map coordinates [%f, %f, %f] after transformation from frame '%s' to frame '%s'.",
+      //             point_stamped_out.point.x, point_stamped_out.point.y, point_stamped_out.point.z,
+      //             point_stamped_in.header.frame_id.c_str(), target_frame.c_str());
 
       return point_stamped_out;
     }
