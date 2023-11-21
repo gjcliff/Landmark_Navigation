@@ -21,16 +21,17 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME}_srv
+rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SaveLandmark.srv"
   "srv/NavigateToLandmark.srv"
-  LIBRARY_NAME ${PROJECT_NAME})
-  rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_srv "rosidl_typesupport_cpp")
+  "msg/SemanticPoint.msg"
+  DEPENDENCIES geometry_msgs
+)
 
-add_executable(landmark_manager src/landmark_manager.cpp)
+add_executable(landmark_manager_node src/landmark_manager.cpp)
 add_executable(semantic_labeling src/semantic_labeling.cpp)
 
-ament_target_dependencies(landmark_manager
+ament_target_dependencies(landmark_manager_node
   rclcpp
   rclcpp_action
   visualization_msgs
@@ -48,10 +49,12 @@ ament_target_dependencies(semantic_labeling
   tf2_geometry_msgs
   builtin_interfaces)
 
-target_link_libraries(landmark_manager yaml-cpp "${cpp_typesupport_target}")
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(landmark_manager_node yaml-cpp "${cpp_typesupport_target}")
+target_link_libraries(semantic_labeling "${cpp_typesupport_target}")
 
 install(TARGETS
-  landmark_manager
+  landmark_manager_node
   semantic_labeling
   DESTINATION lib/${PROJECT_NAME})
 

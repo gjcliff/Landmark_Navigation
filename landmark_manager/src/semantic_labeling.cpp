@@ -6,9 +6,22 @@
 ///     threshold (double): the threshold for considering points as equal
 /// PUBLISHES:
 ///     /semantic_labeling/doors (visualization_msgs::msg::MarkerArray): sphere markers that
-///                                                                      represent doors
+///                                                                      represent doors as well as
+///                                                                      text markers
 ///     /semantic_labeling/tables (visualization_msgs::msg::MarkerArray): sphere markers that
-///                                                                       represent tables
+///                                                                       represent tables as well
+///                                                                       as text markers
+///     /semantic_labeling/semantic_doors (landmark_manager::msg::SemanticPoint): coordinates of a
+///                                                                               detected door in
+///                                                                               the map frame and
+///                                                                               the associated
+///                                                                               marker id
+///     /semantic_labeling/semantic_tables (landmark_manager::msg::SemanticPoint): coordinates of a
+///                                                                                detected table
+///                                                                                in the map frame
+///                                                                                and the
+///                                                                                associated
+///                                                                                marker id
 /// SUBSCRIBES:
 ///     /door (geometry_msgs::msg::PointStamped): coordinates of a detected door
 ///     /table (geometry_msgs::msg::PointStamped): coordinates of a detected table
@@ -28,6 +41,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "builtin_interfaces/msg/time.hpp"
+#include "landmark_manager/msg/semantic_point.hpp"
 
 using namespace std::chrono_literals;
 
@@ -44,8 +58,14 @@ public:
     declare_parameter("threshold", 2.5);
     rate_ = get_parameter("rate").get_parameter_value().get<int>();
     threshold_ = get_parameter("threshold").get_parameter_value().get<double>();
+
     door_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/doors", 10);
     table_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("~/tables", 10);
+    semantic_door_pub_ = create_publisher<landmark_manager::msg::SemanticPoint>(
+      "~/semantic_doors",
+      10);
+    semantic_table_pub_ = create_publisher<landmark_manager::msg::SemanticPoint>(
+      "~/semantic_tables", 10);
     door_sub_ = create_subscription<geometry_msgs::msg::PointStamped>(
       "door", 10, std::bind(
         &SemanticLabeling::door_callback, this,
@@ -108,6 +128,7 @@ private:
     // Check if the transformation was successful
     if (transformed_optional) {
       auto transformed_point = *transformed_optional;
+      int new_id;
 
       // Search for the point in the list of unique door points
       auto it = std::find_if(
@@ -120,7 +141,7 @@ private:
       // If the point is not already in the list of unique door points
       if (it == unique_door_points_.end()) {
         // Generate a new id
-        int new_id = door_marker_id_++;
+        new_id = door_marker_id_++;
 
         // Add the new point and its id to the list of unique door points
         unique_door_points_.emplace_back(transformed_point.point, new_id);
@@ -130,9 +151,16 @@ private:
         new_door_point_received_ = true;
       } else {
         // Update the existing door marker
+        new_id = it->second;
         create_door_marker(it->first, it->second, transformed_point.header.stamp);
         new_door_point_received_ = true;
       }
+
+      // Publish the point in the map frame and marker id
+      landmark_manager::msg::SemanticPoint semantic_msg;
+      semantic_msg.point = transformed_point.point;
+      semantic_msg.marker_id = new_id;
+      semantic_door_pub_->publish(semantic_msg);
     } else {
       RCLCPP_ERROR(
         rclcpp::get_logger("SemanticLabeling"),
@@ -149,6 +177,7 @@ private:
   {
     // Transform the received point to the map frame
     auto transformed_optional = transform_point(msg, "map");
+    int new_id;
 
     // Check if the transformation was successful
     if (transformed_optional) {
@@ -165,7 +194,7 @@ private:
       // If the point is not already in the list of unique table points
       if (it == unique_table_points_.end()) {
         // Generate a new id
-        int new_id = table_marker_id_++;
+        new_id = table_marker_id_++;
 
         // Add the new point and its id to the list of unique table points
         unique_table_points_.emplace_back(transformed_point.point, new_id);
@@ -175,9 +204,16 @@ private:
         new_table_point_received_ = true;
       } else {
         // Update the existing table marker
+        new_id = it->second;
         create_table_marker(it->first, it->second, transformed_point.header.stamp);
         new_table_point_received_ = true;
       }
+
+      // Publish the point in the map frame and marker id
+      landmark_manager::msg::SemanticPoint semantic_msg;
+      semantic_msg.point = transformed_point.point;
+      semantic_msg.marker_id = new_id;
+      semantic_door_pub_->publish(semantic_msg);
     } else {
       RCLCPP_ERROR(
         rclcpp::get_logger("SemanticLabeling"),
@@ -390,6 +426,8 @@ private:
   // Declare private variables
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr door_marker_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr table_marker_pub_;
+  rclcpp::Publisher<landmark_manager::msg::SemanticPoint>::SharedPtr semantic_door_pub_;
+  rclcpp::Publisher<landmark_manager::msg::SemanticPoint>::SharedPtr semantic_table_pub_;
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr door_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr table_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
