@@ -6,7 +6,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='landmark_manager',
-            executable='landmark_manager',
+            executable='landmark_manager_node',
             name='landmark_manager'
         )
     ])

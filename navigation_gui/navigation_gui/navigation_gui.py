@@ -2,6 +2,7 @@ import sys
 import os
 from ament_index_python.packages import get_package_share_directory
 import yaml
+import threading
 import rclpy
 from rclpy.node import Node
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget,
@@ -11,6 +12,43 @@ from PyQt5.QtCore import Qt, QTimer
 from std_srvs.srv import SetBool
 from landmark_manager.srv import SaveLandmark
 from landmark_manager.srv import NavigateToLandmark
+from landmark_manager.msg import SemanticPoint
+
+class ROSWorker:
+    def __init__(self, node, update_callback):
+        self.node = node
+        self.update_callback = update_callback
+        self.running = False
+
+    def start_listening(self):
+        self.running = True
+        self.thread = threading.Thread(target=self.run)
+        self.thread.start()
+
+    def run(self):
+        # Subscribers
+        self.node.create_subscription(SemanticPoint,
+                                      '/semantic_labeling/semantic_doors',
+                                      self.doors_callback,
+                                      10)
+        self.node.create_subscription(SemanticPoint,
+                                      '/semantic_labeling/semantic_tables',
+                                      self.tables_callback,
+                                      10)
+
+        # Spin in a loop to process incoming messages
+        while self.running:
+            rclpy.spin_once(self.node, timeout_sec=0.1)
+
+    def stop_listening(self):
+        self.running = False
+        self.thread.join()
+
+    def doors_callback(self, msg):
+        self.update_callback('Door', msg)
+
+    def tables_callback(self, msg):
+        self.update_callback('Table', msg)
 
 class NavigationGUI(QMainWindow):
     """
@@ -29,9 +67,12 @@ class NavigationGUI(QMainWindow):
         self.setWindowTitle('Navigation GUI')
         self.setGeometry(100, 100, 600, 950)
 
-        # Load landmarks
-        landmarks_path = self.get_landmarks_file_path()
-        self.landmarks = self.load_landmarks(landmarks_path)
+        # # Load landmarks
+        # landmarks_path = self.get_landmarks_file_path()
+        # self.landmarks = self.load_landmarks(landmarks_path)
+
+        # Initialize an empty dictionary for landmarks
+        self.landmarks = {}
 
         # Set up main layout
         layout = QVBoxLayout()
@@ -61,7 +102,7 @@ class NavigationGUI(QMainWindow):
         layout.addSpacing(20)
 
         # Add the instruction label
-        instruction_label = QLabel("Select a saved landmark:")
+        instruction_label = QLabel("Select a landmark:")
         instruction_label.setFont(QtGui.QFont('Arial', 16))
         instruction_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(instruction_label)
@@ -77,26 +118,26 @@ class NavigationGUI(QMainWindow):
         scroll_area.setStyleSheet("QScrollBar:vertical { width: 40px; background: lightgrey; }")
 
         landmarks_widget = QWidget()
-        landmarks_layout = QVBoxLayout()
-        landmarks_layout.setAlignment(Qt.AlignCenter)
+        self.landmarks_layout = QVBoxLayout()
+        self.landmarks_layout.setAlignment(Qt.AlignCenter)
 
-        # Dynamically create buttons for each landmark
-        for landmark, coords in self.landmarks.items():
-            button = QPushButton(f"{landmark}: x={coords['x']}, y={coords['y']}", self)
-            button.setFont(QtGui.QFont('Arial', 14))
-            button.setMinimumSize(400, 120)
-            button.setMaximumSize(400, 120)
-            button.clicked.connect(lambda state, button=button, landmark=landmark:
-                                self.select_landmark(button, landmark))
+        # # Dynamically create buttons for each landmark
+        # for landmark, coords in self.landmarks.items():
+        #     button = QPushButton(f"{landmark}: x={coords['x']}, y={coords['y']}", self)
+        #     button.setFont(QtGui.QFont('Arial', 14))
+        #     button.setMinimumSize(400, 120)
+        #     button.setMaximumSize(400, 120)
+        #     button.clicked.connect(lambda state, button=button, landmark=landmark:
+        #                            self.select_landmark(button, landmark))
 
-            h_layout = QHBoxLayout()
-            h_layout.addStretch(1) # Add stretch to left
-            h_layout.addWidget(button) # Add button to the horizontal layout
-            h_layout.addStretch(1) # Add stretch to right
+        #     h_layout = QHBoxLayout()
+        #     h_layout.addStretch(1) # Add stretch to left
+        #     h_layout.addWidget(button) # Add button to the horizontal layout
+        #     h_layout.addStretch(1) # Add stretch to right
 
-            landmarks_layout.addLayout(h_layout)
+        #     landmarks_layout.addLayout(h_layout)
 
-        landmarks_widget.setLayout(landmarks_layout)
+        landmarks_widget.setLayout(self.landmarks_layout)
         landmarks_widget.setSizePolicy(QSizePolicy.Preferred,
                                        QSizePolicy.Fixed) # Adjust widget size to its content
         scroll_area.setWidgetResizable(True) # Let the scroll area adjust to content size
@@ -106,6 +147,16 @@ class NavigationGUI(QMainWindow):
         main_widget = QWidget()
         main_widget.setLayout(layout)
         self.setCentralWidget(main_widget)
+
+        # ROS worker setup
+        self.ros_worker = ROSWorker(node, self.handle_ros_update)
+        self.ros_worker.start_listening()
+
+        # Set a threshold for determining if coordinates are similar
+        self.threshold = 2.5
+
+        # Create a set to keep track of displayed landmarks
+        self.displayed_landmarks = set()
 
     def save_landmark(self):
         """
@@ -280,6 +331,55 @@ class NavigationGUI(QMainWindow):
         else:
             self.show_error('Failed to call navigate to landmark service')
 
+    def handle_ros_update(self, landmark_type, msg):
+        # This will be called from the ROS worker thread
+        # Update the landmarks and trigger GUI update
+        self.update_landmark(landmark_type, msg)
+
+        # Trigger the GUI update in the main thread
+        QTimer.singleShot(0, self.refresh_landmarks_in_gui)
+
+    def update_landmark(self, landmark_type, msg):
+        landmark_name = f"{landmark_type} {msg.marker_id}"
+        new_coord = {'x': msg.point.x, 'y': msg.point.y, 'z': msg.point.z}
+
+        if not self.is_coordinate_close(new_coord):
+            self.landmarks[landmark_name] = {'x': msg.point.x, 'y': msg.point.y}
+
+    def refresh_landmarks_in_gui(self):
+        # Create new buttons based on the updated landmarks
+        for landmark_name, coords in self.landmarks.items():
+            if landmark_name not in self.displayed_landmarks:
+                # Round the coordinates
+                x_rounded = round(coords['x'], 2)
+                y_rounded = round(coords['y'], 2)
+
+                button = QPushButton(f"{landmark_name}: x={x_rounded}, y={y_rounded}", self)
+                button.setFont(QtGui.QFont('Arial', 14))
+                button.setMinimumSize(400, 120)
+                button.setMaximumSize(400, 120)
+                button.clicked.connect(lambda state, button=button, landmark=landmark_name:
+                                    self.select_landmark(button, landmark))
+
+                h_layout = QHBoxLayout()
+                h_layout.addStretch(1) # Add stretch to left
+                h_layout.addWidget(button) # Add button to the horizontal layout
+                h_layout.addStretch(1) # Add stretch to right
+
+                self.landmarks_layout.addLayout(h_layout)
+                self.displayed_landmarks.add(landmark_name)
+
+        # Update the parent widget to adjust its size to the new content
+        self.landmarks_layout.parent().adjustSize()
+
+    def is_coordinate_close(self, new_coord):
+        for _, coord in self.landmarks.items():
+            distance = ((new_coord['x'] - coord['x']) ** 2 + 
+                        (new_coord['y'] - coord['y']) ** 2) ** 0.5
+            if distance < self.threshold:
+                return True
+        return False
+    
     def show_message(self, message, title, icon):
         """
         Displays a message box with a specified message, title, and icon
@@ -347,6 +447,7 @@ class NavigationGUI(QMainWindow):
 
         Returns: None
         """
+        self.ros_worker.stop_listening()
         rclpy.shutdown()
         event.accept()
 
