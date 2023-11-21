@@ -167,11 +167,18 @@ class NavigationGUI(QMainWindow):
 
         Returns None
         """
+        if not self.selected_landmark:
+            self.show_error("No landmark selected")
+            return
+
+        # Retrieve the coordinates of the selected landmark
+        coords = self.landmarks.get(self.selected_landmark)
+
         # Create a request to send to the service
         request = SaveLandmark.Request()
-        request.name = "Sample Landmark" # Placeholder for now
-        request.x = 0.0 # Placeholder for now
-        request.y = 0.0 # Placeholder for now
+        request.name = self.selected_landmark
+        request.x = coords['x']
+        request.y = coords['y']
 
         # Create a client to call the service
         client = self.node.create_client(SaveLandmark, "save_landmark")
@@ -282,7 +289,7 @@ class NavigationGUI(QMainWindow):
             self.selected_button.setStyleSheet("")
 
         # Change the color of the selected button
-        button.setStyleSheet("background-color: yellow")  
+        button.setStyleSheet("background-color: yellow")
 
         # Update the selected button reference
         self.selected_button = button
