@@ -1,0 +1,33 @@
+repositories:
+  luci_aw_arbitration:
+    type: git
+    url: git@github.com:argallab/luci_aw_arbitration.git
+    version: main
+  luci_aw_behaviors:
+    type: git
+    url: git@github.com:argallab/luci_aw_behaviors.git
+    version: main
+  luci_aw_common:
+    type: git
+    url: git@github.com:argallab/luci_aw_common.git
+    version: main
+  luci_aw_conversion:
+    type: git
+    url: git@github.com:argallab/luci_aw_conversion.git
+    version: dev/teleop-restructure
+  luci_aw_interfaces:
+    type: git
+    url: git@github.com:argallab/luci_aw_interfaces.git
+    version: main
+  luci_aw_navigation:
+    type: git
+    url: git@github.com:argallab/luci_aw_navigation.git
+    version: master
+  semantic_mapping:
+    type: git
+    url: git@github.com:r-shima/semantic_mapping.git
+    version: main
+  yolov8_ros2:
+    type: git
+    url: git@github.com:r-shima/yolov8_ros2.git
+    version: main
