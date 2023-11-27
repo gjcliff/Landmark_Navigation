@@ -42,7 +42,9 @@ public:
   : Node("landmark_manager")
   {
     // Initializes variables for the publisher, timer, services, and action client
-    rate_ = 200.0;
+    declare_parameter("rate", 200);
+    rate_ = get_parameter("rate").get_parameter_value().get<int>();
+
     navigation_canceled_ = false;
     marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("/landmark_markers", 10);
     timer_ = create_wall_timer(

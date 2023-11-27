@@ -23,6 +23,8 @@ def generate_launch_description():
         Node(
             package='landmark_manager',
             executable='landmark_manager_node',
-            name='landmark_manager'
+            name='landmark_manager',
+            parameters=[os.path.join(get_package_share_directory('landmark_manager'),
+                                     'semantic_labeling_params.yaml')]
         )
     ])
