@@ -1,5 +1,5 @@
 # Semantic Mapping for Wheelchair Navigation
-The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback will include semantic labeling which can be shown on the mapped environment either when the user logs a landmark or when a landmark is identified through further inference. For autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks.
+The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback will include semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks.
 ## Hardware
 * LUCI Wheelchair
 * Intel Realsense D435i
@@ -7,7 +7,7 @@ The goal of this project is to utilize a tablet to offer real-time feedback of t
 ## Software
 * ROS 2 Humble
 * SLAM Toolbox
-* Robot Localization
+* robot_localization
 * Nav2
 * YOLOv8
 * Foxglove Studio
@@ -17,7 +17,9 @@ I am not allowed to share any repository or code related to LUCI. If you have an
 To clone the packages, use the following commands:
 ```
 mkdir -p luci_ws/src
-cd luci_ws
+cd luci_ws/src
+git clone https://github.com/r-shima/semantic_mapping.git
+cd ..
 vcs import < src/semantic_mapping/semantic_mapping.repos
 ```
 ## Set Up Docker
@@ -74,7 +76,7 @@ Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emu
 </application>
 ```
 ## Quickstart
-1. Go to your workspace in Docker (`home/luci_ws`) and run the following in different terminals to start LUCI, SLAM Toolbox, Robot Localization, and Nav2:
+1. Go to your workspace in Docker (`home/luci_ws`) and run the following in different terminals to start LUCI, SLAM Toolbox, robot_localization, and Nav2:
    ```
    ros2 launch awl_launch awl_wheelchair.launch.py ip:=192.168.1.8
    ros2 launch awl_launch awl_teleop.launch.py joystick:=true ps3:=true
@@ -95,7 +97,7 @@ Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emu
    ```
    ros2 launch foxglove_bridge foxglove_bridge_launch.xml
    ```
-5. On the Surface Pro, open Foxglove. Go to "Open connection" and enter `ws://<computer_ip_address>:8765` for the WebSocket URL. Go to Layout -> Import from file and select luci_map.json, which is available in the foxglove directory of the landmark_manager package.
+5. On the Surface Pro, open Foxglove. Go to "Open connection" and enter `ws://<computer_ip_address>:8765` for the WebSocket URL. Go to Layout -> Import from file and select `luci_map.json`, which is available in the foxglove directory of the landmark_manager package.
 6. Start Touchegg:
    ```
    touchegg

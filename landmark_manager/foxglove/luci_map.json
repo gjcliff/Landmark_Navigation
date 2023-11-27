@@ -23,22 +23,37 @@
             0
           ],
           "order": 1
+        },
+        "bd2e89c5-dfc9-42c3-ac1d-1f5743bb3021": {
+          "visible": true,
+          "frameLocked": true,
+          "label": "URDF",
+          "instanceId": "bd2e89c5-dfc9-42c3-ac1d-1f5743bb3021",
+          "layerId": "foxglove.Urdf",
+          "sourceType": "topic",
+          "url": "",
+          "filePath": "",
+          "parameter": "",
+          "topic": "/robot_description",
+          "framePrefix": "",
+          "displayMode": "auto",
+          "fallbackColor": "#ffffff",
+          "order": 2
         }
       },
       "cameraState": {
+        "distance": 13.966745921860895,
         "perspective": false,
-        "distance": 16.29012499998473,
         "phi": 59.99999999999931,
-        "thetaOffset": 90.00000000000102,
-        "targetOffset": [
-          0.366116170968515,
-          -0.4991847226263932,
-          -1.4137346026249542e-16
-        ],
         "target": [
           0,
           0,
           0
+        ],
+        "targetOffset": [
+          0.366116170968515,
+          -0.4991847226263932,
+          -1.4137346026249542e-16
         ],
         "targetOrientation": [
           0,
@@ -46,6 +61,7 @@
           0,
           1
         ],
+        "thetaOffset": 90.00000000000269,
         "fovy": 45,
         "near": 0.5,
         "far": 5000
@@ -63,7 +79,7 @@
           "visible": true
         },
         "frame:odom": {
-          "visible": true
+          "visible": false
         },
         "frame:map": {
           "visible": true
@@ -94,6 +110,24 @@
         },
         "frame:right_main_wheel": {
           "visible": true
+        },
+        "frame:camera_link": {
+          "visible": false
+        },
+        "frame:camera_aligned_depth_to_infra1_frame": {
+          "visible": false
+        },
+        "frame:camera_infra1_optical_frame": {
+          "visible": false
+        },
+        "frame:camera_depth_frame": {
+          "visible": false
+        },
+        "frame:camera_depth_optical_frame": {
+          "visible": false
+        },
+        "frame:camera_infra1_frame": {
+          "visible": false
         }
       },
       "topics": {
@@ -114,6 +148,15 @@
         },
         "/landmark_markers": {
           "visible": true
+        },
+        "/semantic_labeling/doors": {
+          "visible": true
+        },
+        "/semantic_labeling/tables": {
+          "visible": true
+        },
+        "/robot_description": {
+          "visible": false
         }
       },
       "publish": {
