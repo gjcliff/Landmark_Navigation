@@ -43,7 +43,9 @@ public:
   {
     // Initializes variables for the publisher, timer, services, and action client
     declare_parameter("rate", 200);
+    declare_parameter("load_saved_landmarks", false);
     rate_ = get_parameter("rate").get_parameter_value().get<int>();
+    load_saved_landmarks_ = get_parameter("load_saved_landmarks").get_parameter_value().get<bool>();
 
     navigation_canceled_ = false;
     marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("/landmark_markers", 10);
@@ -80,7 +82,10 @@ private:
     // Clear the marker array to prevent duplicate markers
     marker_array_.markers.clear();
 
-    add_landmarks();
+    if (load_saved_landmarks_) {
+        add_landmarks();
+    }
+
     marker_pub_->publish(marker_array_);
   }
 
@@ -293,6 +298,7 @@ private:
   rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SharedPtr action_client_;
 
   int rate_;
+  bool load_saved_landmarks_;
   visualization_msgs::msg::MarkerArray marker_array_;
   bool navigation_canceled_;
 };

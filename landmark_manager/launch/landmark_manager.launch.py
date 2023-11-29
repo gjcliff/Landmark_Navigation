@@ -1,11 +1,20 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument(
+            name='load_saved_landmarks',
+            default_value='false',
+            choices=['true','false'],
+            description='Load saved landmarks'
+        ),
+        
         Node(
             package = "tf2_ros", 
             executable = "static_transform_publisher",
@@ -25,6 +34,9 @@ def generate_launch_description():
             executable='landmark_manager_node',
             name='landmark_manager',
             parameters=[os.path.join(get_package_share_directory('landmark_manager'),
-                                     'semantic_labeling_params.yaml')]
+                                     'semantic_labeling_params.yaml'),
+                        {
+                            'load_saved_landmarks': LaunchConfiguration('load_saved_landmarks')
+                        }]
         )
     ])
