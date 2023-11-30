@@ -5,6 +5,7 @@ This package provides services for saving landmarks, canceling navigation, and n
 * `semantic_labeling`: Uses markers to label doors and tables
 ## Launch File
 * `landmark_manager.launch.py`: Publishes a static transform between `base_camera` and `camera_link`, and runs `landmark_manager` and `semantic_labeling` nodes
+    * `load_saved_landmarks`: An argument for loading saved landmarks
 ## Parameters
 The following are the parameters in `config/semantic_labeling_params.yaml`:
 * `rate`: A frequency used for the timer

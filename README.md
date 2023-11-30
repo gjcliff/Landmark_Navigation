@@ -1,5 +1,5 @@
 # Semantic Mapping for Wheelchair Navigation
-The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback will include semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks.
+The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback includes semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks.
 ## Hardware
 * LUCI Wheelchair
 * Intel Realsense D435i
@@ -98,7 +98,7 @@ Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emu
    ros2 launch foxglove_bridge foxglove_bridge_launch.xml
    ```
 5. On the Surface Pro, open Foxglove. Go to "Open connection" and enter `ws://<computer_ip_address>:8765` for the WebSocket URL. Go to Layout -> Import from file and select `luci_map.json`, which is available in the foxglove directory of the landmark_manager package.
-6. Start Touchegg:
+6. On the Surface Pro, start Touchegg:
    ```
    touchegg
    ```
