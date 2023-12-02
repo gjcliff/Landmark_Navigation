@@ -213,7 +213,7 @@ private:
       landmark_manager::msg::SemanticPoint semantic_msg;
       semantic_msg.point = transformed_point.point;
       semantic_msg.marker_id = new_id;
-      semantic_door_pub_->publish(semantic_msg);
+      semantic_table_pub_->publish(semantic_msg);
     } else {
       RCLCPP_ERROR(
         rclcpp::get_logger("SemanticLabeling"),
