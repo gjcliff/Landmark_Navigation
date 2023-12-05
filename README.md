@@ -1,8 +1,8 @@
 # Semantic Mapping for Wheelchair Navigation
-The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback includes semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks.
+The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback includes semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks. For more details, please go to my [portfolio post](https://r-shima.github.io/semantic_mapping.html).
 ## Hardware
 * LUCI Wheelchair
-* Intel Realsense D435i
+* Intel RealSense D435i
 * Windows Surface Pro 2 (with Ubuntu 22.04 LTS)
 ## Software
 * ROS 2 Humble
@@ -65,7 +65,7 @@ Install Touchegg:
 ```
 sudo apt install touchegg
 ```
-Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emulate a left-click on Foxglove:
+Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emulate a left-click on Foxglove Studio:
 ```
 <application name="Foxglove Studio">
 
@@ -93,11 +93,11 @@ Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emu
    ```
    ros2 launch landmark_manager landmark_manager.launch.py
    ```
-4. Launch the Foxglove bridge to connect ROS 2 to Foxglove:
+4. Launch the Foxglove bridge to connect ROS 2 to Foxglove Studio:
    ```
    ros2 launch foxglove_bridge foxglove_bridge_launch.xml
    ```
-5. On the Surface Pro, open Foxglove. Go to "Open connection" and enter `ws://<computer_ip_address>:8765` for the WebSocket URL. Go to Layout -> Import from file and select `luci_map.json`, which is available in the foxglove directory of the landmark_manager package.
+5. On the Surface Pro, open Foxglove Studio. Go to "Open connection" and enter `ws://<computer_ip_address>:8765` for the WebSocket URL. Go to Layout -> Import from file and select `luci_map.json`, which is available in the foxglove directory of the landmark_manager package.
 6. On the Surface Pro, start Touchegg:
    ```
    touchegg
@@ -109,3 +109,6 @@ Add the following in `~/.config/touchegg/touchegg.conf` to make a single tap emu
 ## Packages
 * [landmark_manager](https://github.com/r-shima/semantic_mapping/tree/main/landmark_manager): This is a ROS 2 package that provides services for saving landmarks, canceling navigation, and navigating to landmarks. It also performs semantic labeling by publishing markers for detected doors and tables.
 * [navigation_gui](https://github.com/r-shima/semantic_mapping/tree/main/navigation_gui): This is a ROS 2 package that contains a GUI that allows users to save landmarks and cancel navigation. The GUI displays buttons for detected doors and tables in a scroll area.
+## Video
+
+[Alt-Text](https://github.com/r-shima/semantic_mapping/assets/113070827/6bc5d5fd-c329-4380-9807-7c8d456aea30)
