@@ -1,5 +1,7 @@
 # Semantic Mapping for Wheelchair Navigation
-The goal of this project is to utilize a tablet to offer real-time feedback of the environment to the user. This feedback includes semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks. For more details, please go to my [portfolio post](https://r-shima.github.io/semantic_mapping.html).
+The goal of this project is to integrate a semantic mapping system into a power wheelchair, enhancing user interaction and environmental awareness. This system utilizes a tablet to provide real-time feedback of the environment to the user. The feedback includes semantic labeling, which can be shown on the mapped environment when a landmark is identified through further inference. Additionally, for autonomous navigation towards a landmark, the user can initiate a plan by selecting it from the displayed landmarks.
+
+For more details, please go to my [portfolio post](https://r-shima.github.io/semantic_mapping.html).
 ## Hardware
 * LUCI Wheelchair
 * Intel RealSense D435i
