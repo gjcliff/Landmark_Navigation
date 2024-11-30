@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.8)
 project(landmark_manager)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
+
+add_definitions(-DCMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 # find dependencies
 find_package(ament_cmake REQUIRED)

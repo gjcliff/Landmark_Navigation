@@ -7,36 +7,72 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            name='load_saved_landmarks',
-            default_value='false',
-            choices=['true','false'],
-            description='Load saved landmarks'
-        ),
-        
-        Node(
-            package = "tf2_ros", 
-            executable = "static_transform_publisher",
-            arguments = ["--x", "0.35", "--y", "-0.23", "--z", "0.1", "--yaw", "-0.2618", "--pitch", "0.3142", "--roll", "0", "--frame-id", "base_camera", "--child-frame-id", "camera_link"]
-        ),
-
-        Node(
-            package='landmark_manager',
-            executable='semantic_labeling',
-            name='semantic_labeling',
-            parameters=[os.path.join(get_package_share_directory('landmark_manager'),
-                                     'semantic_labeling_params.yaml')]
-        ),
-        
-        Node(
-            package='landmark_manager',
-            executable='landmark_manager_node',
-            name='landmark_manager',
-            parameters=[os.path.join(get_package_share_directory('landmark_manager'),
-                                     'semantic_labeling_params.yaml'),
-                        {
-                            'load_saved_landmarks': LaunchConfiguration('load_saved_landmarks')
-                        }]
-        )
-    ])
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                name="load_saved_landmarks",
+                default_value="false",
+                choices=["true", "false"],
+                description="Load saved landmarks",
+            ),
+            DeclareLaunchArgument(
+                name="landmarks_file_name",
+                default_value="",
+                description="Name of the yaml file containing landmarks",
+            ),
+            Node(
+                package="tf2_ros",
+                executable="static_transform_publisher",
+                arguments=[
+                    "--x",
+                    "0.35",
+                    "--y",
+                    "-0.23",
+                    "--z",
+                    "0.1",
+                    "--yaw",
+                    "-0.2618",
+                    "--pitch",
+                    "0.3142",
+                    "--roll",
+                    "0",
+                    "--frame-id",
+                    "base_camera",
+                    "--child-frame-id",
+                    "camera_link",
+                ],
+            ),
+            Node(
+                package="landmark_manager",
+                executable="semantic_labeling",
+                name="semantic_labeling",
+                parameters=[
+                    os.path.join(
+                        get_package_share_directory("landmark_manager"),
+                        "semantic_labeling_params.yaml",
+                    ),
+                ],
+            ),
+            Node(
+                package="landmark_manager",
+                executable="landmark_manager_node",
+                name="landmark_manager",
+                parameters=[
+                    os.path.join(
+                        get_package_share_directory("landmark_manager"),
+                        "semantic_labeling_params.yaml",
+                    ),
+                    {
+                        "load_saved_landmarks": LaunchConfiguration(
+                            "load_saved_landmarks"
+                        )
+                    },
+                    {
+                        "landmarks_file_name": LaunchConfiguration(
+                            "landmarks_file_name"
+                        ),
+                    }
+                ],
+            ),
+        ]
+    )
