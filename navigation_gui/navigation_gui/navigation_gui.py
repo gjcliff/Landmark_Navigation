@@ -5,14 +5,25 @@ import yaml
 import threading
 import rclpy
 from rclpy.node import Node
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget,
-                             QScrollArea, QMessageBox, QHBoxLayout, QSizePolicy, QLabel)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+    QScrollArea,
+    QMessageBox,
+    QHBoxLayout,
+    QSizePolicy,
+    QLabel,
+)
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QTimer
 from std_srvs.srv import SetBool
 from landmark_manager.srv import SaveLandmark
 from landmark_manager.srv import NavigateToLandmark
 from landmark_manager.msg import SemanticPoint
+
 
 class ROSThread:
     """
@@ -48,14 +59,15 @@ class ROSThread:
         Returns: None
         """
         # Subscribers
-        self.node.create_subscription(SemanticPoint,
-                                      '/semantic_labeling/semantic_doors',
-                                      self.doors_callback,
-                                      10)
-        self.node.create_subscription(SemanticPoint,
-                                      '/semantic_labeling/semantic_tables',
-                                      self.tables_callback,
-                                      10)
+        self.node.create_subscription(
+            SemanticPoint, "/semantic_labeling/semantic_doors", self.doors_callback, 10
+        )
+        self.node.create_subscription(
+            SemanticPoint,
+            "/semantic_labeling/semantic_tables",
+            self.tables_callback,
+            10,
+        )
 
         # Spin in a loop to process incoming messages
         while self.running:
@@ -80,7 +92,7 @@ class ROSThread:
 
         Returns: None
         """
-        self.update_callback('Door', msg)
+        self.update_callback("Door", msg)
 
     def tables_callback(self, msg):
         """
@@ -90,7 +102,8 @@ class ROSThread:
 
         Returns: None
         """
-        self.update_callback('Table', msg)
+        self.update_callback("Table", msg)
+
 
 class NavigationGUI(QMainWindow):
     """
@@ -106,8 +119,15 @@ class NavigationGUI(QMainWindow):
 
         # Store the ROS node and set up basic GUI properties
         self.node = node
-        self.setWindowTitle('Navigation GUI')
+        self.setWindowTitle("Navigation GUI")
         self.setGeometry(100, 100, 600, 950)
+
+        self.node.declare_parameter("landmarks_file_name", "")
+        self.landmarks_file_name = (
+            self.node.get_parameter("landmarks_file_name")
+            .get_parameter_value()
+            .string_value
+        )
 
         # Initialize an empty dictionary for landmarks
         self.landmarks = {}
@@ -116,32 +136,32 @@ class NavigationGUI(QMainWindow):
         layout = QVBoxLayout()
 
         # Button for saving landmark
-        self.save_button = QPushButton('Save Landmark', self)
-        self.save_button.setFont(QtGui.QFont('Arial', 18))
-        self.save_button.setMinimumSize(400, 200)
-        self.save_button.clicked.connect(self.save_landmark)
-        layout.addWidget(self.save_button)
+        # self.save_button = QPushButton("Save Landmark", self)
+        # self.save_button.setFont(QtGui.QFont("Arial", 18))
+        # self.save_button.setMinimumSize(400, 200)
+        # self.save_button.clicked.connect(self.save_landmark)
+        # layout.addWidget(self.save_button)
 
         # Button for canceling navigation
-        self.cancel_button = QPushButton('Cancel Navigation', self)
-        self.cancel_button.setFont(QtGui.QFont('Arial', 18))
+        self.cancel_button = QPushButton("Cancel Navigation", self)
+        self.cancel_button.setFont(QtGui.QFont("Arial", 18))
         self.cancel_button.setMinimumSize(400, 200)
         self.cancel_button.clicked.connect(self.cancel_navigation)
         layout.addWidget(self.cancel_button)
 
-        # # Button for navigating to a landmark
-        # self.navigate_button = QPushButton('Navigate to Landmark', self)
-        # self.navigate_button.setFont(QtGui.QFont('Arial', 14))
-        # self.navigate_button.setMinimumSize(400, 100)
-        # self.navigate_button.clicked.connect(self.navigate_to_landmark)
-        # layout.addWidget(self.navigate_button)
+        # Button for navigating to a landmark
+        self.navigate_button = QPushButton('Navigate to Landmark', self)
+        self.navigate_button.setFont(QtGui.QFont('Arial', 18))
+        self.navigate_button.setMinimumSize(400, 200)
+        self.navigate_button.clicked.connect(self.navigate_to_landmark)
+        layout.addWidget(self.navigate_button)
 
         # Add spacing between the button and instruction label
         layout.addSpacing(20)
 
         # Add the instruction label
         instruction_label = QLabel("Select a landmark:")
-        instruction_label.setFont(QtGui.QFont('Arial', 16))
+        instruction_label.setFont(QtGui.QFont("Arial", 16))
         instruction_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(instruction_label)
 
@@ -153,16 +173,21 @@ class NavigationGUI(QMainWindow):
         scroll_area = QScrollArea(self)
 
         # Apply custom style to the scroll bar
-        scroll_area.setStyleSheet("QScrollBar:vertical { width: 40px; background: lightgrey; }")
+        scroll_area.setStyleSheet(
+            "QScrollBar:vertical { width: 40px; background: lightgrey; }"
+        )
 
         # Set up layout and widget
         landmarks_widget = QWidget()
         self.landmarks_layout = QVBoxLayout()
         self.landmarks_layout.setAlignment(Qt.AlignCenter)
         landmarks_widget.setLayout(self.landmarks_layout)
-        landmarks_widget.setSizePolicy(QSizePolicy.Preferred,
-                                       QSizePolicy.Fixed) # Adjust widget size to its content
-        scroll_area.setWidgetResizable(True) # Let the scroll area adjust to content size
+        landmarks_widget.setSizePolicy(
+            QSizePolicy.Preferred, QSizePolicy.Fixed
+        )  # Adjust widget size to its content
+        scroll_area.setWidgetResizable(
+            True
+        )  # Let the scroll area adjust to content size
         scroll_area.setWidget(landmarks_widget)
         layout.addWidget(scroll_area)
 
@@ -179,6 +204,10 @@ class NavigationGUI(QMainWindow):
 
         # Create a set to keep track of displayed landmarks
         self.displayed_landmarks = set()
+
+        if self.landmarks_file_name:
+            self.load_landmarks(self.get_landmarks_file_path())
+
 
     def save_landmark(self):
         """
@@ -199,14 +228,14 @@ class NavigationGUI(QMainWindow):
         # Create a request to send to the service
         request = SaveLandmark.Request()
         request.name = self.selected_landmark
-        request.x = coords['x']
-        request.y = coords['y']
+        request.x = coords["x"]
+        request.y = coords["y"]
 
         # Create a client to call the service
         client = self.node.create_client(SaveLandmark, "save_landmark")
 
         if not client.wait_for_service(timeout_sec=3.0):
-            self.show_error('Save landmark service not available')
+            self.show_error("Save landmark service not available")
             return
 
         future = client.call_async(request)
@@ -214,9 +243,9 @@ class NavigationGUI(QMainWindow):
 
         # Check the result of the service call
         if future.result() is not None:
-            self.show_info('Landmark saved successfully')
+            self.show_info("Landmark saved successfully")
         else:
-            self.show_error('Failed to call save landmark service')
+            self.show_error("Failed to call save landmark service")
 
     def cancel_navigation(self):
         """
@@ -229,19 +258,21 @@ class NavigationGUI(QMainWindow):
         """
         # Show a confirmation dialog before canceling navigation
         msg_box = QMessageBox(self)
-        msg_box.setWindowTitle('Cancel Navigation')
-        msg_box.setText('Are you sure you want to cancel navigation?')
+        msg_box.setWindowTitle("Cancel Navigation")
+        msg_box.setText("Are you sure you want to cancel navigation?")
         msg_box.setIcon(QMessageBox.Question)
 
         # Add "Yes" and "No" buttons to the dialog box
-        yes_button = msg_box.addButton('Yes', QMessageBox.YesRole)
-        no_button = msg_box.addButton('No', QMessageBox.NoRole)
+        yes_button = msg_box.addButton("Yes", QMessageBox.YesRole)
+        no_button = msg_box.addButton("No", QMessageBox.NoRole)
 
         # Apply custom style to the buttons
         yes_button.setStyleSheet(
-            'QPushButton { min-width: 150px; min-height: 70px; font-size: 16px; }')
+            "QPushButton { min-width: 150px; min-height: 70px; font-size: 16px; }"
+        )
         no_button.setStyleSheet(
-            'QPushButton { min-width: 150px; min-height: 70px; font-size: 16px; }')
+            "QPushButton { min-width: 150px; min-height: 70px; font-size: 16px; }"
+        )
 
         msg_box.setDefaultButton(no_button)
 
@@ -257,7 +288,7 @@ class NavigationGUI(QMainWindow):
             client = self.node.create_client(SetBool, "cancel_navigation")
 
             if not client.wait_for_service(timeout_sec=3.0):
-                self.show_error('Cancel navigation service not available')
+                self.show_error("Cancel navigation service not available")
                 return
 
             future = client.call_async(request)
@@ -270,7 +301,7 @@ class NavigationGUI(QMainWindow):
                 else:
                     self.show_error(future.result().message)
             else:
-                self.show_error('Failed to call cancel navigation service')
+                self.show_error("Failed to call cancel navigation service")
         # If the "No" button is clicked
         elif msg_box.clickedButton() == no_button:
             pass
@@ -283,8 +314,15 @@ class NavigationGUI(QMainWindow):
 
         Returns: Dictionary containing loaded landmarks
         """
-        with open(filepath, 'r') as file:
-            return yaml.safe_load(file)
+        with open(filepath, "r") as file:
+            landmarks = yaml.safe_load(file)
+
+            # self.node.get_logger().info(f"Loaded landmarks: {landmarks}")
+            for name, coords in landmarks.items():
+                self.landmarks[name] = {"x": coords["x"], "y": coords["y"]}
+
+            file.close()
+            self.refresh_landmarks_in_gui()
 
     def get_landmarks_file_path(self):
         """
@@ -294,8 +332,8 @@ class NavigationGUI(QMainWindow):
 
         Returns: Path to landmarks.yaml
         """
-        package_path = get_package_share_directory('landmark_manager')
-        return os.path.join(package_path, 'config', 'landmarks.yaml')
+        package_path = get_package_share_directory("landmark_manager")
+        return os.path.join(package_path, "landmarks", self.landmarks_file_name)
 
     def select_landmark(self, button, landmark):
         """
@@ -336,20 +374,24 @@ class NavigationGUI(QMainWindow):
         # Retrieve the coordinates of the selected landmark
         landmark_coords = self.landmarks.get(self.selected_landmark)
         if not landmark_coords:
-            self.show_warning(f"No coordinates found for landmark \
-                                        {self.selected_landmark}")
+            self.show_warning(
+                f"No coordinates found for landmark \
+                                        {self.selected_landmark}"
+            )
             return
 
         # Create a client to call the service
         client = self.node.create_client(NavigateToLandmark, "navigate_to_landmark")
 
         if not client.wait_for_service(timeout_sec=3.0):
-            self.show_error('Navigate to landmark service not available')
+            self.show_error("Navigate to landmark service not available")
             return
 
         # Create a request to send to the service
         request = NavigateToLandmark.Request()
         request.name = self.selected_landmark
+        request.x = landmark_coords["x"]
+        request.y = landmark_coords["y"]
 
         future = client.call_async(request)
         rclpy.spin_until_future_complete(self.node, future)
@@ -358,7 +400,7 @@ class NavigationGUI(QMainWindow):
         if future.result() is not None:
             self.show_info(f"Navigating to {self.selected_landmark}")
         else:
-            self.show_error('Failed to call navigate to landmark service')
+            self.show_error("Failed to call navigate to landmark service")
 
     def handle_ros_update(self, landmark_type, msg):
         """
@@ -386,10 +428,10 @@ class NavigationGUI(QMainWindow):
         Returns: None
         """
         landmark_name = f"{landmark_type} {msg.marker_id}"
-        new_coord = {'x': msg.point.x, 'y': msg.point.y, 'z': msg.point.z}
+        new_coord = {"x": msg.point.x, "y": msg.point.y, "z": msg.point.z}
 
         if not self.is_coordinate_close(new_coord):
-            self.landmarks[landmark_name] = {'x': msg.point.x, 'y': msg.point.y}
+            self.landmarks[landmark_name] = {"x": msg.point.x, "y": msg.point.y}
 
     def refresh_landmarks_in_gui(self):
         """
@@ -403,20 +445,25 @@ class NavigationGUI(QMainWindow):
         for landmark_name, coords in self.landmarks.items():
             if landmark_name not in self.displayed_landmarks:
                 # Round the coordinates
-                x_rounded = round(coords['x'], 2)
-                y_rounded = round(coords['y'], 2)
+                x_rounded = round(coords["x"], 2)
+                y_rounded = round(coords["y"], 2)
 
-                button = QPushButton(f"{landmark_name}: x={x_rounded}, y={y_rounded}", self)
-                button.setFont(QtGui.QFont('Arial', 14))
+                button = QPushButton(
+                    f"{landmark_name}: x={x_rounded}, y={y_rounded}", self
+                )
+                button.setFont(QtGui.QFont("Arial", 14))
                 button.setMinimumSize(400, 120)
                 button.setMaximumSize(400, 120)
-                button.clicked.connect(lambda state, button=button, landmark=landmark_name:
-                                       self.select_landmark(button, landmark))
+                button.clicked.connect(
+                    lambda state, button=button, landmark=landmark_name: self.select_landmark(
+                        button, landmark
+                    )
+                )
 
                 h_layout = QHBoxLayout()
-                h_layout.addStretch(1) # Add stretch to left
-                h_layout.addWidget(button) # Add button to the horizontal layout
-                h_layout.addStretch(1) # Add stretch to right
+                h_layout.addStretch(1)  # Add stretch to left
+                h_layout.addWidget(button)  # Add button to the horizontal layout
+                h_layout.addStretch(1)  # Add stretch to right
 
                 self.landmarks_layout.addLayout(h_layout)
                 self.displayed_landmarks.add(landmark_name)
@@ -433,12 +480,13 @@ class NavigationGUI(QMainWindow):
         Returns: True if the new coordinate is close, False otherwise
         """
         for _, coord in self.landmarks.items():
-            distance = ((new_coord['x'] - coord['x']) ** 2 + 
-                        (new_coord['y'] - coord['y']) ** 2) ** 0.5
+            distance = (
+                (new_coord["x"] - coord["x"]) ** 2 + (new_coord["y"] - coord["y"]) ** 2
+            ) ** 0.5
             if distance < self.threshold:
                 return True
         return False
-    
+
     def show_message(self, message, title, icon):
         """
         Displays a message box with a specified message, title, and icon
@@ -458,9 +506,10 @@ class NavigationGUI(QMainWindow):
 
         # Get the OK button for customization
         ok_button = msg_box.button(QMessageBox.Ok)
-        ok_button.setText('OK')
+        ok_button.setText("OK")
         ok_button.setStyleSheet(
-            'QPushButton { min-width: 150px; min-height: 70px; font-size: 16px; }')
+            "QPushButton { min-width: 150px; min-height: 70px; font-size: 16px; }"
+        )
 
         # Set a timer to automatically close the message box after 2 seconds (2000 milliseconds)
         QTimer.singleShot(2000, msg_box.close)
@@ -510,6 +559,7 @@ class NavigationGUI(QMainWindow):
         rclpy.shutdown()
         event.accept()
 
+
 def main(args=None):
     """
     The main function
@@ -521,5 +571,6 @@ def main(args=None):
     gui.show()
     sys.exit(app.exec_())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

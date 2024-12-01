@@ -133,27 +133,27 @@ private:
           request,
       landmark_manager::srv::NavigateToLandmark::Response::
           SharedPtr /*response*/) {
-    std::string file_path = get_landmarks_file_path();
-
-    if (!file_exists(file_path)) {
-      RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"),
-                  "No landmarks file found");
-      return;
-    }
-
-    YAML::Node node = YAML::LoadFile(file_path);
-
-    if (!node[request->name]) {
-      RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"), "Landmark not found");
-      return;
-    }
+    // std::string file_path = get_landmarks_file_path();
+    //
+    // if (!file_exists(file_path)) {
+    //   RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"),
+    //               "No landmarks file found");
+    //   return;
+    // }
+    //
+    // YAML::Node node = YAML::LoadFile(file_path);
+    //
+    // if (!node[request->name]) {
+    //   RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"), "Landmark not found");
+    //   return;
+    // }
 
     // Send the landmark as a goal
     nav2_msgs::action::NavigateToPose::Goal goal;
     goal.pose.header.frame_id = "map";
     goal.pose.header.stamp = get_clock()->now();
-    goal.pose.pose.position.x = node[request->name]["x"].as<double>();
-    goal.pose.pose.position.y = node[request->name]["y"].as<double>();
+    goal.pose.pose.position.x = request->x;
+    goal.pose.pose.position.y = request->y;
 
     // Set up options for sending the goal
     auto send_goal_options = rclcpp_action::Client<

@@ -10,12 +10,6 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument(
-                name="load_saved_landmarks",
-                default_value="false",
-                choices=["true", "false"],
-                description="Load saved landmarks",
-            ),
-            DeclareLaunchArgument(
                 name="landmarks_file_name",
                 default_value="",
                 description="Name of the yaml file containing landmarks",
@@ -42,17 +36,17 @@ def generate_launch_description():
                     "camera_link",
                 ],
             ),
-            Node(
-                package="landmark_manager",
-                executable="semantic_labeling",
-                name="semantic_labeling",
-                parameters=[
-                    os.path.join(
-                        get_package_share_directory("landmark_manager"),
-                        "semantic_labeling_params.yaml",
-                    ),
-                ],
-            ),
+            # Node(
+            #     package="landmark_manager",
+            #     executable="semantic_labeling",
+            #     name="semantic_labeling",
+            #     parameters=[
+            #         os.path.join(
+            #             get_package_share_directory("landmark_manager"),
+            #             "semantic_labeling_params.yaml",
+            #         ),
+            #     ],
+            # ),
             Node(
                 package="landmark_manager",
                 executable="landmark_manager_node",
@@ -62,11 +56,6 @@ def generate_launch_description():
                         get_package_share_directory("landmark_manager"),
                         "semantic_labeling_params.yaml",
                     ),
-                    {
-                        "load_saved_landmarks": LaunchConfiguration(
-                            "load_saved_landmarks"
-                        )
-                    },
                     {
                         "landmarks_file_name": LaunchConfiguration(
                             "landmarks_file_name"

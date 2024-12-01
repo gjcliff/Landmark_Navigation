@@ -64,6 +64,7 @@ install(TARGETS
 
 install(DIRECTORY
   config
+  landmarks
   launch
   foxglove
   DESTINATION share/landmark_manager/
