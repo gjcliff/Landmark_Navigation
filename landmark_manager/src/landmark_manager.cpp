@@ -26,6 +26,7 @@
 #include <fstream>
 #include <functional>
 #include <memory>
+#include <rclcpp_action/client.hpp>
 #include <string>
 #include <yaml-cpp/yaml.h>
 
@@ -44,7 +45,8 @@ using namespace std::chrono_literals;
 /// and navigating to landmarks
 class LandmarkManager : public rclcpp::Node {
 public:
-  LandmarkManager() : Node("landmark_manager") {
+  LandmarkManager() : Node("landmark_manager")
+  {
     // Initializes variables for the publisher, timer, services, and action
     // client
     declare_parameter("rate", 200);
@@ -56,26 +58,25 @@ public:
 
     navigation_canceled_ = false;
     marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
-        "/landmark_markers", 10);
+      "/landmark_markers", 10);
     timer_ =
-        create_wall_timer(std::chrono::milliseconds(1000 / rate_),
-                          std::bind(&LandmarkManager::timer_callback, this));
+      create_wall_timer(std::chrono::milliseconds(1000 / rate_),
+                        std::bind(&LandmarkManager::timer_callback, this));
     save_service_ = create_service<landmark_manager::srv::SaveLandmark>(
-        "save_landmark",
-        std::bind(&LandmarkManager::save_landmark_callback, this,
-                  std::placeholders::_1, std::placeholders::_2));
+      "save_landmark", std::bind(&LandmarkManager::save_landmark_callback, this,
+                                 std::placeholders::_1, std::placeholders::_2));
     navigate_service_ =
-        create_service<landmark_manager::srv::NavigateToLandmark>(
-            "navigate_to_landmark",
-            std::bind(&LandmarkManager::navigate_to_landmark_callback, this,
-                      std::placeholders::_1, std::placeholders::_2));
-    cancel_service_ = create_service<std_srvs::srv::SetBool>(
-        "cancel_navigation",
-        std::bind(&LandmarkManager::cancel_navigation_callback, this,
+      create_service<landmark_manager::srv::NavigateToLandmark>(
+        "navigate_to_landmark",
+        std::bind(&LandmarkManager::navigate_to_landmark_callback, this,
                   std::placeholders::_1, std::placeholders::_2));
+    cancel_service_ = create_service<std_srvs::srv::SetBool>(
+      "cancel_navigation",
+      std::bind(&LandmarkManager::cancel_navigation_callback, this,
+                std::placeholders::_1, std::placeholders::_2));
     action_client_ =
-        rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
-            this, "navigate_to_pose");
+      rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
+        this, "navigate_to_pose");
   }
 
 private:
@@ -83,7 +84,8 @@ private:
   ///
   /// \param none
   /// \return none
-  void timer_callback() {
+  void timer_callback()
+  {
     // Clear the marker array to prevent duplicate markers
     marker_array_.markers.clear();
 
@@ -101,8 +103,9 @@ private:
   /// \param response - not being used
   /// \return none
   void save_landmark_callback(
-      const landmark_manager::srv::SaveLandmark::Request::SharedPtr request,
-      landmark_manager::srv::SaveLandmark::Response::SharedPtr /*response*/) {
+    const landmark_manager::srv::SaveLandmark::Request::SharedPtr request,
+    landmark_manager::srv::SaveLandmark::Response::SharedPtr /*response*/)
+  {
     std::string file_path = get_landmarks_file_path();
     YAML::Node node;
 
@@ -129,10 +132,9 @@ private:
   /// \param response - not being used
   /// \return none
   void navigate_to_landmark_callback(
-      const landmark_manager::srv::NavigateToLandmark::Request::SharedPtr
-          request,
-      landmark_manager::srv::NavigateToLandmark::Response::
-          SharedPtr /*response*/) {
+    const landmark_manager::srv::NavigateToLandmark::Request::SharedPtr request,
+    landmark_manager::srv::NavigateToLandmark::Response::SharedPtr /*response*/)
+  {
     // std::string file_path = get_landmarks_file_path();
     //
     // if (!file_exists(file_path)) {
@@ -144,8 +146,8 @@ private:
     // YAML::Node node = YAML::LoadFile(file_path);
     //
     // if (!node[request->name]) {
-    //   RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"), "Landmark not found");
-    //   return;
+    //   RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"), "Landmark not
+    //   found"); return;
     // }
 
     // Send the landmark as a goal
@@ -155,15 +157,32 @@ private:
     goal.pose.pose.position.x = request->x;
     goal.pose.pose.position.y = request->y;
 
+    RCLCPP_INFO_STREAM(get_logger(), "request x: " << request->x);
+    RCLCPP_INFO_STREAM(get_logger(), "request y: " << request->y);
+
     // Set up options for sending the goal
     auto send_goal_options = rclcpp_action::Client<
-        nav2_msgs::action::NavigateToPose>::SendGoalOptions();
-    send_goal_options.result_callback =
-        std::bind(&LandmarkManager::handle_navigation_result, this,
-                  std::placeholders::_1);
+      nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+    send_goal_options.result_callback = std::bind(
+      &LandmarkManager::handle_navigation_result, this, std::placeholders::_1);
+    send_goal_options.feedback_callback =
+      std::bind(&LandmarkManager::handle_navigation_feedback, this,
+                std::placeholders::_1, std::placeholders::_2);
 
     // Send the goal
     action_client_->async_send_goal(goal, send_goal_options);
+  }
+
+  void handle_navigation_feedback(
+    const std::shared_ptr<rclcpp_action::ClientGoalHandle<
+      nav2_msgs::action::NavigateToPose>> /*goal_handle*/,
+    const std::shared_ptr<const nav2_msgs::action::NavigateToPose::Feedback>
+      feedback)
+  {
+    // Process feedback (e.g., display the current position)
+    RCLCPP_INFO(get_logger(), "Current position: (%.2f, %.2f)",
+                feedback->current_pose.pose.position.x,
+                feedback->current_pose.pose.position.y);
   }
 
   /// \brief Handles the result of navigation action
@@ -171,8 +190,9 @@ private:
   /// \param result - result of the navigation action
   /// \return none
   void handle_navigation_result(
-      const rclcpp_action::ClientGoalHandle<
-          nav2_msgs::action::NavigateToPose>::WrappedResult &result) {
+    const rclcpp_action::ClientGoalHandle<
+      nav2_msgs::action::NavigateToPose>::WrappedResult &result)
+  {
     switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED:
       RCLCPP_INFO(rclcpp::get_logger("LandmarkManager"),
@@ -201,8 +221,9 @@ private:
   /// successful
   /// \return none
   void cancel_navigation_callback(
-      const std_srvs::srv::SetBool::Request::SharedPtr /*request*/,
-      std_srvs::srv::SetBool::Response::SharedPtr response) {
+    const std_srvs::srv::SetBool::Request::SharedPtr /*request*/,
+    std_srvs::srv::SetBool::Response::SharedPtr response)
+  {
     // Reset the cancellation status
     navigation_canceled_ = false;
 
@@ -226,10 +247,11 @@ private:
   ///
   /// \param none
   /// \return none
-  void add_landmarks() {
+  void add_landmarks()
+  {
     // std::string file_path = get_landmarks_file_path();
     std::string file_path =
-        std::string(CMAKE_SOURCE_DIR) + "/landmarks/" + landmarks_file_name_;
+      std::string(CMAKE_SOURCE_DIR) + "/landmarks/" + landmarks_file_name_;
 
     if (!file_exists(file_path)) {
       RCLCPP_WARN(rclcpp::get_logger("LandmarkManager"),
@@ -288,7 +310,8 @@ private:
   ///
   /// \param name - path to the file
   /// \return true if the file exists, false otherwise
-  bool file_exists(const std::string &name) {
+  bool file_exists(const std::string &name)
+  {
     return std::filesystem::exists(name);
   }
 
@@ -296,22 +319,23 @@ private:
   ///
   /// \param none
   /// \return file path
-  std::string get_landmarks_file_path() {
+  std::string get_landmarks_file_path()
+  {
     std::string package_path =
-        ament_index_cpp::get_package_share_directory("landmark_manager");
+      ament_index_cpp::get_package_share_directory("landmark_manager");
     return package_path + "/config/landmarks.yaml";
   }
 
   // Declare private variables
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-      marker_pub_;
+    marker_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Service<landmark_manager::srv::SaveLandmark>::SharedPtr save_service_;
   rclcpp::Service<landmark_manager::srv::NavigateToLandmark>::SharedPtr
-      navigate_service_;
+    navigate_service_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr cancel_service_;
   rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SharedPtr
-      action_client_;
+    action_client_;
 
   int rate_;
   bool load_saved_landmarks_;
@@ -321,7 +345,8 @@ private:
 };
 
 /// \brief The main function
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<LandmarkManager>());
   rclcpp::shutdown();
